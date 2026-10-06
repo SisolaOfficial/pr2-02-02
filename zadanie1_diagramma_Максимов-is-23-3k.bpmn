@@ -1,0 +1,1454 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bpmn:definitions
+    xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+    xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+    xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+    xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+    xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+    id="Definitions_GoodsReceipt"
+    targetNamespace="http://bpmn.io/schema/bpmn"
+    exporter="Camunda Modeler"
+    exporterVersion="5.51.1"
+    modeler:executionPlatform="Camunda Cloud"
+    modeler:executionPlatformVersion="8.9.0">
+
+  <!-- ====================================================== -->
+  <!-- ПРОЦЕСС -->
+  <!-- ====================================================== -->
+
+  <bpmn:process
+      id="Process_GoodsReceipt"
+      name="Приёмка готовой продукции"
+      isExecutable="false">
+
+    <!-- ================================================== -->
+    <!-- ДОРОЖКИ -->
+    <!-- ================================================== -->
+
+    <bpmn:laneSet id="LaneSet_Main">
+
+      <bpmn:lane
+          id="Lane_ProjectManager"
+          name="Руководитель проекта">
+
+        <bpmn:flowNodeRef>StartEvent_ProductReady</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendArrivalLetter</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReviewSupplierDocuments</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendDocumentsAccounting</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Success</bpmn:flowNodeRef>
+
+      </bpmn:lane>
+
+      <bpmn:lane
+          id="Lane_FinancialManager"
+          name="Финансовый менеджер">
+
+        <bpmn:flowNodeRef>Task_CreatePackingList</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateUnloadingNote</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendWarehouseDocuments</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReceivePackingList</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CalculateCost</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreateFinalUnloadingNote</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendFinalUnloadingNote</bpmn:flowNodeRef>
+
+      </bpmn:lane>
+
+      <bpmn:lane
+          id="Lane_WarehouseManager"
+          name="Кладовщик">
+
+        <bpmn:flowNodeRef>Task_ReceiveGoods</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CheckGoodsDocuments</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_DocumentsMatch</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UnloadGoods</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CountGoods</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PlaceGoods</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_UpdateInventoryCard</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RecordActualQuantity</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendPackingList</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ReceiveSupplierDocuments</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_SendSupplierDocuments</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ResolveMismatch</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_Failure</bpmn:flowNodeRef>
+
+      </bpmn:lane>
+
+      <bpmn:lane
+          id="Lane_Accounting"
+          name="Бухгалтерия">
+
+        <bpmn:flowNodeRef>Task_ReceiveAccountingDocuments</bpmn:flowNodeRef>
+
+      </bpmn:lane>
+
+    </bpmn:laneSet>
+
+
+    <!-- ================================================== -->
+    <!-- СТАРТОВОЕ СОБЫТИЕ -->
+    <!-- ================================================== -->
+
+    <bpmn:startEvent
+        id="StartEvent_ProductReady"
+        name="Готовая продукция поступила">
+
+      <bpmn:outgoing>Flow_Start_SendLetter</bpmn:outgoing>
+
+    </bpmn:startEvent>
+
+
+    <!-- ================================================== -->
+    <!-- РУКОВОДИТЕЛЬ ПРОЕКТА -->
+    <!-- ================================================== -->
+
+    <bpmn:userTask
+        id="Task_SendArrivalLetter"
+        name="Направить письмо о поступлении продукции">
+
+      <bpmn:incoming>Flow_Start_SendLetter</bpmn:incoming>
+      <bpmn:outgoing>Flow_Letter_CreateDocuments</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <!-- ================================================== -->
+    <!-- ФИНАНСОВЫЙ МЕНЕДЖЕР -->
+    <!-- ================================================== -->
+
+    <bpmn:userTask
+        id="Task_CreatePackingList"
+        name="Создать упаковочный лист">
+
+      <bpmn:incoming>Flow_Letter_CreateDocuments</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreatePacking_CreateUnloading</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_CreateUnloadingNote"
+        name="Создать накладную на разгрузку">
+
+      <bpmn:incoming>Flow_CreatePacking_CreateUnloading</bpmn:incoming>
+      <bpmn:outgoing>Flow_CreateUnloading_SendWarehouse</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_SendWarehouseDocuments"
+        name="Направить документы кладовщику">
+
+      <bpmn:incoming>Flow_CreateUnloading_SendWarehouse</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendWarehouse_ReceiveGoods</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <!-- ================================================== -->
+    <!-- КЛАДОВЩИК -->
+    <!-- ================================================== -->
+
+    <bpmn:userTask
+        id="Task_ReceiveGoods"
+        name="Принять прибывший груз">
+
+      <bpmn:incoming>Flow_SendWarehouse_ReceiveGoods</bpmn:incoming>
+      <bpmn:outgoing>Flow_Receive_CheckDocuments</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_CheckGoodsDocuments"
+        name="Проверить соответствие груза документам">
+
+      <bpmn:incoming>Flow_Receive_CheckDocuments</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckDocuments_Gateway</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <!-- ================================================== -->
+    <!-- XOR: СООТВЕТСТВИЕ -->
+    <!-- ================================================== -->
+
+    <bpmn:exclusiveGateway
+        id="Gateway_DocumentsMatch"
+        name="Груз соответствует документам?">
+
+      <bpmn:incoming>Flow_CheckDocuments_Gateway</bpmn:incoming>
+
+      <bpmn:outgoing>Flow_Match_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Match_No</bpmn:outgoing>
+
+    </bpmn:exclusiveGateway>
+
+
+    <!-- ================================================== -->
+    <!-- НЕСООТВЕТСТВИЕ -->
+    <!-- ================================================== -->
+
+    <bpmn:userTask
+        id="Task_ResolveMismatch"
+        name="Устранить несоответствие груза">
+
+      <bpmn:incoming>Flow_Match_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_Mismatch_End</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:endEvent
+        id="EndEvent_Failure"
+        name="Несоответствие груза не устранено">
+
+      <bpmn:incoming>Flow_Mismatch_End</bpmn:incoming>
+
+    </bpmn:endEvent>
+
+
+    <!-- ================================================== -->
+    <!-- РАЗГРУЗКА И РАЗМЕЩЕНИЕ -->
+    <!-- ================================================== -->
+
+    <bpmn:userTask
+        id="Task_UnloadGoods"
+        name="Организовать разгрузку">
+
+      <bpmn:incoming>Flow_Match_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_Unload_Count</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_CountGoods"
+        name="Проверить количество товара">
+
+      <bpmn:incoming>Flow_Unload_Count</bpmn:incoming>
+      <bpmn:outgoing>Flow_Count_Place</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_PlaceGoods"
+        name="Разместить товар на складе">
+
+      <bpmn:incoming>Flow_Count_Place</bpmn:incoming>
+      <bpmn:outgoing>Flow_Place_UpdateCard</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_UpdateInventoryCard"
+        name="Заполнить карточку учета товаров">
+
+      <bpmn:incoming>Flow_Place_UpdateCard</bpmn:incoming>
+      <bpmn:outgoing>Flow_UpdateCard_RecordQuantity</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_RecordActualQuantity"
+        name="Записать фактическое количество товара">
+
+      <bpmn:incoming>Flow_UpdateCard_RecordQuantity</bpmn:incoming>
+      <bpmn:outgoing>Flow_RecordQuantity_SendPackingList</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_SendPackingList"
+        name="Передать упаковочный лист финансовому менеджеру">
+
+      <bpmn:incoming>Flow_RecordQuantity_SendPackingList</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendPackingList_ReceivePackingList</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <!-- ================================================== -->
+    <!-- ФИНАНСОВЫЙ МЕНЕДЖЕР: СЕБЕСТОИМОСТЬ -->
+    <!-- ================================================== -->
+
+    <bpmn:userTask
+        id="Task_ReceivePackingList"
+        name="Получить упаковочный лист">
+
+      <bpmn:incoming>Flow_SendPackingList_ReceivePackingList</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReceivePacking_CalculateCost</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_CalculateCost"
+        name="Рассчитать себестоимость товара">
+
+      <bpmn:incoming>Flow_ReceivePacking_CalculateCost</bpmn:incoming>
+      <bpmn:outgoing>Flow_Calculate_CreateFinalNote</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_CreateFinalUnloadingNote"
+        name="Создать накладную на разгрузку">
+
+      <bpmn:incoming>Flow_Calculate_CreateFinalNote</bpmn:incoming>
+      <bpmn:outgoing>Flow_FinalNote_SendWarehouse</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_SendFinalUnloadingNote"
+        name="Направить накладную кладовщику">
+
+      <bpmn:incoming>Flow_FinalNote_SendWarehouse</bpmn:incoming>
+      <bpmn:outgoing>Flow_FinalNote_End</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <!-- ================================================== -->
+    <!-- ДОКУМЕНТЫ ОТ ПОСТАВЩИКА -->
+    <!-- ================================================== -->
+
+    <bpmn:userTask
+        id="Task_ReceiveSupplierDocuments"
+        name="Получить документы поставщика">
+
+      <bpmn:outgoing>Flow_ReceiveSupplier_SendManager</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_SendSupplierDocuments"
+        name="Передать документы руководителю проекта">
+
+      <bpmn:incoming>Flow_ReceiveSupplier_SendManager</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendSupplier_Review</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <!-- ================================================== -->
+    <!-- РУКОВОДИТЕЛЬ ПРОЕКТА: ПРОВЕРКА -->
+    <!-- ================================================== -->
+
+    <bpmn:userTask
+        id="Task_ReviewSupplierDocuments"
+        name="Проверить документы поставщика">
+
+      <bpmn:incoming>Flow_SendSupplier_Review</bpmn:incoming>
+      <bpmn:outgoing>Flow_Review_SendAccounting</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <bpmn:userTask
+        id="Task_SendDocumentsAccounting"
+        name="Передать документы в бухгалтерию">
+
+      <bpmn:incoming>Flow_Review_SendAccounting</bpmn:incoming>
+      <bpmn:outgoing>Flow_SendAccounting_Receive</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <!-- ================================================== -->
+    <!-- БУХГАЛТЕРИЯ -->
+    <!-- ================================================== -->
+
+    <bpmn:userTask
+        id="Task_ReceiveAccountingDocuments"
+        name="Принять документы">
+
+      <bpmn:incoming>Flow_SendAccounting_Receive</bpmn:incoming>
+      <bpmn:outgoing>Flow_Accounting_Success</bpmn:outgoing>
+
+    </bpmn:userTask>
+
+
+    <!-- ================================================== -->
+    <!-- УСПЕШНОЕ ЗАВЕРШЕНИЕ -->
+    <!-- ================================================== -->
+
+    <bpmn:endEvent
+        id="EndEvent_Success"
+        name="Документы переданы в бухгалтерию">
+
+      <bpmn:incoming>Flow_Accounting_Success</bpmn:incoming>
+
+    </bpmn:endEvent>
+
+
+    <!-- ================================================== -->
+    <!-- ПОТОКИ УПРАВЛЕНИЯ -->
+    <!-- ================================================== -->
+
+    <bpmn:sequenceFlow
+        id="Flow_Start_SendLetter"
+        sourceRef="StartEvent_ProductReady"
+        targetRef="Task_SendArrivalLetter" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Letter_CreateDocuments"
+        sourceRef="Task_SendArrivalLetter"
+        targetRef="Task_CreatePackingList" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_CreatePacking_CreateUnloading"
+        sourceRef="Task_CreatePackingList"
+        targetRef="Task_CreateUnloadingNote" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_CreateUnloading_SendWarehouse"
+        sourceRef="Task_CreateUnloadingNote"
+        targetRef="Task_SendWarehouseDocuments" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_SendWarehouse_ReceiveGoods"
+        sourceRef="Task_SendWarehouseDocuments"
+        targetRef="Task_ReceiveGoods" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Receive_CheckDocuments"
+        sourceRef="Task_ReceiveGoods"
+        targetRef="Task_CheckGoodsDocuments" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_CheckDocuments_Gateway"
+        sourceRef="Task_CheckGoodsDocuments"
+        targetRef="Gateway_DocumentsMatch" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Match_Yes"
+        name="Да"
+        sourceRef="Gateway_DocumentsMatch"
+        targetRef="Task_UnloadGoods" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Match_No"
+        name="Нет"
+        sourceRef="Gateway_DocumentsMatch"
+        targetRef="Task_ResolveMismatch" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Mismatch_End"
+        sourceRef="Task_ResolveMismatch"
+        targetRef="EndEvent_Failure" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Unload_Count"
+        sourceRef="Task_UnloadGoods"
+        targetRef="Task_CountGoods" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Count_Place"
+        sourceRef="Task_CountGoods"
+        targetRef="Task_PlaceGoods" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Place_UpdateCard"
+        sourceRef="Task_PlaceGoods"
+        targetRef="Task_UpdateInventoryCard" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_UpdateCard_RecordQuantity"
+        sourceRef="Task_UpdateInventoryCard"
+        targetRef="Task_RecordActualQuantity" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_RecordQuantity_SendPackingList"
+        sourceRef="Task_RecordActualQuantity"
+        targetRef="Task_SendPackingList" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_SendPackingList_ReceivePackingList"
+        sourceRef="Task_SendPackingList"
+        targetRef="Task_ReceivePackingList" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_ReceivePacking_CalculateCost"
+        sourceRef="Task_ReceivePackingList"
+        targetRef="Task_CalculateCost" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Calculate_CreateFinalNote"
+        sourceRef="Task_CalculateCost"
+        targetRef="Task_CreateFinalUnloadingNote" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_FinalNote_SendWarehouse"
+        sourceRef="Task_CreateFinalUnloadingNote"
+        targetRef="Task_SendFinalUnloadingNote" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_FinalNote_End"
+        sourceRef="Task_SendFinalUnloadingNote"
+        targetRef="Task_ReceiveSupplierDocuments" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_ReceiveSupplier_SendManager"
+        sourceRef="Task_ReceiveSupplierDocuments"
+        targetRef="Task_SendSupplierDocuments" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_SendSupplier_Review"
+        sourceRef="Task_SendSupplierDocuments"
+        targetRef="Task_ReviewSupplierDocuments" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Review_SendAccounting"
+        sourceRef="Task_ReviewSupplierDocuments"
+        targetRef="Task_SendDocumentsAccounting" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_SendAccounting_Receive"
+        sourceRef="Task_SendDocumentsAccounting"
+        targetRef="Task_ReceiveAccountingDocuments" />
+
+
+    <bpmn:sequenceFlow
+        id="Flow_Accounting_Success"
+        sourceRef="Task_ReceiveAccountingDocuments"
+        targetRef="EndEvent_Success" />
+
+  </bpmn:process>
+
+
+  <!-- ====================================================== -->
+  <!-- COLLABORATION -->
+  <!-- ====================================================== -->
+
+  <bpmn:collaboration
+      id="Collaboration_GoodsReceipt"
+      name="Взаимодействие при приёмке готовой продукции">
+
+    <!-- Открытый пул -->
+    <bpmn:participant
+        id="Participant_GoodsReceipt"
+        name="Приёмка готовой продукции"
+        processRef="Process_GoodsReceipt" />
+
+    <!-- Закрытый пул внешнего контрагента -->
+    <bpmn:participant
+        id="Participant_Supplier"
+        name="Поставщик" />
+
+
+    <!-- ================================================== -->
+    <!-- ПОТОКИ СООБЩЕНИЙ -->
+    <!-- ================================================== -->
+
+    <!-- Письмо / уведомление о поступлении -->
+    <bpmn:messageFlow
+        id="MessageFlow_ArrivalLetter"
+        name="Письмо о поступлении продукции"
+        sourceRef="Task_SendArrivalLetter"
+        targetRef="Participant_Supplier" />
+
+
+    <!-- Документы поставщика -->
+    <bpmn:messageFlow
+        id="MessageFlow_SupplierDocuments"
+        name="Приложение к договору, товарная накладная, счет-фактура"
+        sourceRef="Participant_Supplier"
+        targetRef="Task_ReceiveSupplierDocuments" />
+
+  </bpmn:collaboration>
+
+
+  <!-- ====================================================== -->
+  <!-- ГРАФИЧЕСКАЯ ЧАСТЬ -->
+  <!-- ====================================================== -->
+
+  <bpmndi:BPMNDiagram
+      id="BPMNDiagram_GoodsReceipt">
+
+    <!-- ВАЖНО:
+         Plane ссылается на Collaboration,
+         а не на Participant или Process.
+    -->
+
+    <bpmndi:BPMNPlane
+        id="BPMNPlane_GoodsReceipt"
+        bpmnElement="Collaboration_GoodsReceipt">
+
+
+      <!-- ================================================== -->
+      <!-- ПУЛ ПРИЁМКИ -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Participant_GoodsReceipt_di"
+          bpmnElement="Participant_GoodsReceipt"
+          isHorizontal="true">
+
+        <dc:Bounds
+            x="100"
+            y="100"
+            width="2600"
+            height="650" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- ДОРОЖКА РУКОВОДИТЕЛЯ -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Lane_ProjectManager_di"
+          bpmnElement="Lane_ProjectManager"
+          isHorizontal="true">
+
+        <dc:Bounds
+            x="130"
+            y="100"
+            width="2570"
+            height="150" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- ДОРОЖКА ФИНАНСОВОГО МЕНЕДЖЕРА -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Lane_FinancialManager_di"
+          bpmnElement="Lane_FinancialManager"
+          isHorizontal="true">
+
+        <dc:Bounds
+            x="130"
+            y="250"
+            width="2570"
+            height="170" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- ДОРОЖКА КЛАДОВЩИКА -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Lane_WarehouseManager_di"
+          bpmnElement="Lane_WarehouseManager"
+          isHorizontal="true">
+
+        <dc:Bounds
+            x="130"
+            y="420"
+            width="2570"
+            height="180" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- ДОРОЖКА БУХГАЛТЕРИИ -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Lane_Accounting_di"
+          bpmnElement="Lane_Accounting"
+          isHorizontal="true">
+
+        <dc:Bounds
+            x="130"
+            y="600"
+            width="2570"
+            height="150" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- ПУЛ ПОСТАВЩИКА -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Participant_Supplier_di"
+          bpmnElement="Participant_Supplier"
+          isHorizontal="true">
+
+        <dc:Bounds
+            x="100"
+            y="800"
+            width="2600"
+            height="100" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- START -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="StartEvent_ProductReady_di"
+          bpmnElement="StartEvent_ProductReady">
+
+        <dc:Bounds
+            x="180"
+            y="157"
+            width="36"
+            height="36" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- SEND LETTER -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Task_SendArrivalLetter_di"
+          bpmnElement="Task_SendArrivalLetter">
+
+        <dc:Bounds
+            x="260"
+            y="135"
+            width="150"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- FINANCIAL TASKS -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Task_CreatePackingList_di"
+          bpmnElement="Task_CreatePackingList">
+
+        <dc:Bounds
+            x="470"
+            y="275"
+            width="150"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_CreateUnloadingNote_di"
+          bpmnElement="Task_CreateUnloadingNote">
+
+        <dc:Bounds
+            x="670"
+            y="275"
+            width="150"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_SendWarehouseDocuments_di"
+          bpmnElement="Task_SendWarehouseDocuments">
+
+        <dc:Bounds
+            x="870"
+            y="275"
+            width="170"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- WAREHOUSE -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Task_ReceiveGoods_di"
+          bpmnElement="Task_ReceiveGoods">
+
+        <dc:Bounds
+            x="1090"
+            y="465"
+            width="140"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_CheckGoodsDocuments_di"
+          bpmnElement="Task_CheckGoodsDocuments">
+
+        <dc:Bounds
+            x="1260"
+            y="465"
+            width="160"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Gateway_DocumentsMatch_di"
+          bpmnElement="Gateway_DocumentsMatch"
+          isMarkerVisible="true">
+
+        <dc:Bounds
+            x="1455"
+            y="480"
+            width="50"
+            height="50" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_UnloadGoods_di"
+          bpmnElement="Task_UnloadGoods">
+
+        <dc:Bounds
+            x="1540"
+            y="465"
+            width="140"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_CountGoods_di"
+          bpmnElement="Task_CountGoods">
+
+        <dc:Bounds
+            x="1710"
+            y="465"
+            width="140"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_PlaceGoods_di"
+          bpmnElement="Task_PlaceGoods">
+
+        <dc:Bounds
+            x="1880"
+            y="465"
+            width="150"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_UpdateInventoryCard_di"
+          bpmnElement="Task_UpdateInventoryCard">
+
+        <dc:Bounds
+            x="2060"
+            y="465"
+            width="170"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_RecordActualQuantity_di"
+          bpmnElement="Task_RecordActualQuantity">
+
+        <dc:Bounds
+            x="2260"
+            y="465"
+            width="170"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_SendPackingList_di"
+          bpmnElement="Task_SendPackingList">
+
+        <dc:Bounds
+            x="2460"
+            y="465"
+            width="180"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- FINANCIAL FINAL -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Task_ReceivePackingList_di"
+          bpmnElement="Task_ReceivePackingList">
+
+        <dc:Bounds
+            x="1090"
+            y="285"
+            width="140"
+            height="70" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_CalculateCost_di"
+          bpmnElement="Task_CalculateCost">
+
+        <dc:Bounds
+            x="1260"
+            y="285"
+            width="160"
+            height="70" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_CreateFinalUnloadingNote_di"
+          bpmnElement="Task_CreateFinalUnloadingNote">
+
+        <dc:Bounds
+            x="1450"
+            y="285"
+            width="160"
+            height="70" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_SendFinalUnloadingNote_di"
+          bpmnElement="Task_SendFinalUnloadingNote">
+
+        <dc:Bounds
+            x="1640"
+            y="285"
+            width="160"
+            height="70" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- SUPPLIER DOCUMENTS -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Task_ReceiveSupplierDocuments_di"
+          bpmnElement="Task_ReceiveSupplierDocuments">
+
+        <dc:Bounds
+            x="1860"
+            y="465"
+            width="170"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_SendSupplierDocuments_di"
+          bpmnElement="Task_SendSupplierDocuments">
+
+        <dc:Bounds
+            x="2060"
+            y="135"
+            width="180"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- PROJECT MANAGER -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Task_ReviewSupplierDocuments_di"
+          bpmnElement="Task_ReviewSupplierDocuments">
+
+        <dc:Bounds
+            x="2270"
+            y="135"
+            width="170"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="Task_SendDocumentsAccounting_di"
+          bpmnElement="Task_SendDocumentsAccounting">
+
+        <dc:Bounds
+            x="2460"
+            y="135"
+            width="170"
+            height="80" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- ACCOUNTING -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Task_ReceiveAccountingDocuments_di"
+          bpmnElement="Task_ReceiveAccountingDocuments">
+
+        <dc:Bounds
+            x="2520"
+            y="635"
+            width="140"
+            height="70" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- END SUCCESS -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="EndEvent_Success_di"
+          bpmnElement="EndEvent_Success">
+
+        <dc:Bounds
+            x="2680"
+            y="157"
+            width="36"
+            height="36" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- END FAILURE -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNShape
+          id="Task_ResolveMismatch_di"
+          bpmnElement="Task_ResolveMismatch">
+
+        <dc:Bounds
+            x="1540"
+            y="555"
+            width="170"
+            height="60" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <bpmndi:BPMNShape
+          id="EndEvent_Failure_di"
+          bpmnElement="EndEvent_Failure">
+
+        <dc:Bounds
+            x="1750"
+            y="567"
+            width="36"
+            height="36" />
+
+        <bpmndi:BPMNLabel />
+
+      </bpmndi:BPMNShape>
+
+
+      <!-- ================================================== -->
+      <!-- SEQUENCE FLOWS -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNEdge
+          id="Flow_Start_SendLetter_di"
+          bpmnElement="Flow_Start_SendLetter">
+
+        <di:waypoint x="216" y="175" />
+        <di:waypoint x="260" y="175" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Letter_CreateDocuments_di"
+          bpmnElement="Flow_Letter_CreateDocuments">
+
+        <di:waypoint x="335" y="215" />
+        <di:waypoint x="335" y="315" />
+        <di:waypoint x="470" y="315" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_CreatePacking_CreateUnloading_di"
+          bpmnElement="Flow_CreatePacking_CreateUnloading">
+
+        <di:waypoint x="620" y="315" />
+        <di:waypoint x="670" y="315" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_CreateUnloading_SendWarehouse_di"
+          bpmnElement="Flow_CreateUnloading_SendWarehouse">
+
+        <di:waypoint x="820" y="315" />
+        <di:waypoint x="870" y="315" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_SendWarehouse_ReceiveGoods_di"
+          bpmnElement="Flow_SendWarehouse_ReceiveGoods">
+
+        <di:waypoint x="955" y="355" />
+        <di:waypoint x="955" y="505" />
+        <di:waypoint x="1090" y="505" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Receive_CheckDocuments_di"
+          bpmnElement="Flow_Receive_CheckDocuments">
+
+        <di:waypoint x="1230" y="505" />
+        <di:waypoint x="1260" y="505" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_CheckDocuments_Gateway_di"
+          bpmnElement="Flow_CheckDocuments_Gateway">
+
+        <di:waypoint x="1420" y="505" />
+        <di:waypoint x="1455" y="505" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Match_Yes_di"
+          bpmnElement="Flow_Match_Yes">
+
+        <di:waypoint x="1505" y="505" />
+        <di:waypoint x="1540" y="505" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Match_No_di"
+          bpmnElement="Flow_Match_No">
+
+        <di:waypoint x="1480" y="530" />
+        <di:waypoint x="1480" y="585" />
+        <di:waypoint x="1540" y="585" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Mismatch_End_di"
+          bpmnElement="Flow_Mismatch_End">
+
+        <di:waypoint x="1710" y="585" />
+        <di:waypoint x="1750" y="585" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Unload_Count_di"
+          bpmnElement="Flow_Unload_Count">
+
+        <di:waypoint x="1680" y="505" />
+        <di:waypoint x="1710" y="505" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Count_Place_di"
+          bpmnElement="Flow_Count_Place">
+
+        <di:waypoint x="1850" y="505" />
+        <di:waypoint x="1880" y="505" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Place_UpdateCard_di"
+          bpmnElement="Flow_Place_UpdateCard">
+
+        <di:waypoint x="2030" y="505" />
+        <di:waypoint x="2060" y="505" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_UpdateCard_RecordQuantity_di"
+          bpmnElement="Flow_UpdateCard_RecordQuantity">
+
+        <di:waypoint x="2230" y="505" />
+        <di:waypoint x="2260" y="505" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_RecordQuantity_SendPackingList_di"
+          bpmnElement="Flow_RecordQuantity_SendPackingList">
+
+        <di:waypoint x="2430" y="505" />
+        <di:waypoint x="2460" y="505" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_SendPackingList_ReceivePackingList_di"
+          bpmnElement="Flow_SendPackingList_ReceivePackingList">
+
+        <di:waypoint x="2550" y="465" />
+        <di:waypoint x="2550" y="400" />
+        <di:waypoint x="1160" y="400" />
+        <di:waypoint x="1160" y="355" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_ReceivePacking_CalculateCost_di"
+          bpmnElement="Flow_ReceivePacking_CalculateCost">
+
+        <di:waypoint x="1230" y="320" />
+        <di:waypoint x="1260" y="320" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Calculate_CreateFinalNote_di"
+          bpmnElement="Flow_Calculate_CreateFinalNote">
+
+        <di:waypoint x="1420" y="320" />
+        <di:waypoint x="1450" y="320" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_FinalNote_SendWarehouse_di"
+          bpmnElement="Flow_FinalNote_SendWarehouse">
+
+        <di:waypoint x="1610" y="320" />
+        <di:waypoint x="1640" y="320" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_FinalNote_End_di"
+          bpmnElement="Flow_FinalNote_End">
+
+        <di:waypoint x="1720" y="355" />
+        <di:waypoint x="1720" y="430" />
+        <di:waypoint x="1945" y="430" />
+        <di:waypoint x="1945" y="465" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_ReceiveSupplier_SendManager_di"
+          bpmnElement="Flow_ReceiveSupplier_SendManager">
+
+        <di:waypoint x="2030" y="505" />
+        <di:waypoint x="2030" y="175" />
+        <di:waypoint x="2060" y="175" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_SendSupplier_Review_di"
+          bpmnElement="Flow_SendSupplier_Review">
+
+        <di:waypoint x="2240" y="175" />
+        <di:waypoint x="2270" y="175" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Review_SendAccounting_di"
+          bpmnElement="Flow_Review_SendAccounting">
+
+        <di:waypoint x="2440" y="175" />
+        <di:waypoint x="2460" y="175" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_SendAccounting_Receive_di"
+          bpmnElement="Flow_SendAccounting_Receive">
+
+        <di:waypoint x="2545" y="215" />
+        <di:waypoint x="2545" y="600" />
+        <di:waypoint x="2590" y="600" />
+        <di:waypoint x="2590" y="635" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="Flow_Accounting_Success_di"
+          bpmnElement="Flow_Accounting_Success">
+
+        <di:waypoint x="2590" y="635" />
+        <di:waypoint x="2590" y="580" />
+        <di:waypoint x="2680" y="580" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <!-- ================================================== -->
+      <!-- MESSAGE FLOWS -->
+      <!-- ================================================== -->
+
+      <bpmndi:BPMNEdge
+          id="MessageFlow_ArrivalLetter_di"
+          bpmnElement="MessageFlow_ArrivalLetter">
+
+        <di:waypoint x="335" y="135" />
+        <di:waypoint x="335" y="800" />
+
+      </bpmndi:BPMNEdge>
+
+
+      <bpmndi:BPMNEdge
+          id="MessageFlow_SupplierDocuments_di"
+          bpmnElement="MessageFlow_SupplierDocuments">
+
+        <di:waypoint x="1400" y="800" />
+        <di:waypoint x="1945" y="545" />
+
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+
+  </bpmndi:BPMNDiagram>
+
+</bpmn:definitions>
